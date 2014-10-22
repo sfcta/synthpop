@@ -43,6 +43,7 @@ def synthesize(h_marg, p_marg, h_jd, p_jd, h_pums, p_pums,
 
     logger.debug("Household constraint")
     logger.debug(h_constraint)
+    logger.debug(h_constraint.sum())
 
     # ipf for persons
     logger.info("Running ipf for persons")
@@ -51,6 +52,7 @@ def synthesize(h_marg, p_marg, h_jd, p_jd, h_pums, p_pums,
 
     logger.debug("Person constraint")
     logger.debug(p_constraint)
+    logger.debug(p_constraint.sum())
 
     # make frequency tables that the ipu expects
     household_freq, person_freq = cat.frequency_tables(p_pums, h_pums,
@@ -69,6 +71,7 @@ def synthesize(h_marg, p_marg, h_jd, p_jd, h_pums, p_pums,
 
     logger.debug("IPU weights:")
     logger.debug(best_weights.describe())
+    logger.debug(best_weights.sum())
     logger.debug("Fit quality:")
     logger.debug(fit_quality)
     logger.debug("Number of iterations:")
@@ -137,9 +140,10 @@ def synthesize_all(recipe, num_geogs=None, indexes=None,
 
         hh_list.append(households)
         people_list.append(people)
-        key = BlockGroupID(
-            geog_id['state'], geog_id['county'], geog_id['tract'],
-            geog_id['block group'])
+        key = tuple(geog_id.values)
+        # key = BlockGroupID(
+        #    geog_id['state'], geog_id['county'], geog_id['tract'],
+        #    geog_id['block group'])
         fit_quality[key] = FitQuality(people_chisq, people_p)
 
         cnt += 1
