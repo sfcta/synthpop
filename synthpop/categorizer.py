@@ -4,6 +4,28 @@ import itertools
 
 # TODO DOCSTRINGS!!
 def categorize(df, eval_d, index_cols=None):
+    """
+    Given a DataFrame, a definition for categories and a list of index columns,
+    returns a new DataFrame with he new categories.
+    
+    Parameters
+    ----------
+    df: pandas.DataFrame
+        DataFrame to categorize
+    eval_d : dictionary
+        Category definitions.  This is a mapping from tuples (category name, category value) to 
+        an expression that can be evaluated on the `df`.
+        (e.g. {('workers', 'two or more'): 'B08202_004E + B08202_005E', ... })
+    index_cols : array
+        A list of column names of `df` that should be used as an index.
+    
+    Returns
+    -------
+    cat_df : pandas.DataFrame
+        The `df` DataFrame but with a pandas.MultiIndex as the index defined by `index_cols`,
+        and a pandas.MultiIndex defining the columns as defined by `eval_d`
+    
+    """
     cat_df = pd.DataFrame(index=df.index)
 
     for index, expr in eval_d.iteritems():
