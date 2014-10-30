@@ -60,7 +60,7 @@ class SFCTAStarter:
                                           index_cols=['SFTAZ'])
 
         self.tazToPUMA2010 = pd.read_csv(r"Q:\Model Development\Population Synthesizer\4. Geographic Work\Census 2010 PUMAs\TAZ2454_to_Census2010PUMAs.csv",
-                                         converters = {'PUMA2010':str})
+                                         index_col=0, converters = {'PUMA2010':str})
         
         self.state = '06'
 
@@ -172,9 +172,6 @@ class SFCTAStarter:
         return h_pums, jd_households
 
     def get_person_joint_dist_for_geography(self, ind):
-        print "get_person_joint_dist_for_geography"
-        print ind
-        
         puma = self.tazToPUMA2010.loc[ind.SFTAZ,'PUMA2010']
         
         # this is cached so won't download more than once
