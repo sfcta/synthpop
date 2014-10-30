@@ -18,7 +18,9 @@ starter = SFCTAStarter(os.environ["CENSUS"])
 indexes = None
 
 
-households, people, fit_quality = synthesize_all(starter, indexes=indexes)
+households, people, fit_quality = synthesize_all(starter, indexes=indexes,
+                                                 write_households_csv="households.csv",
+                                                 write_persons_csv="persons.csv")
 
 for geo, qual in fit_quality.items():
     print 'Geography: {}'.format(geo[0])

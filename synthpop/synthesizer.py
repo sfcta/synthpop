@@ -88,11 +88,21 @@ def synthesize(h_marg, p_marg, h_jd, p_jd, h_pums, p_pums,
 
 
 def synthesize_all(recipe, num_geogs=None, indexes=None,
-                   marginal_zero_sub=.01, jd_zero_sub=.001):
+                   marginal_zero_sub=.01, jd_zero_sub=.001,
+                   write_households_csv=None,
+                   write_persons_csv=None):
     """
+    Parameters
+    ----------
+    write_households_csv, write_persons_csv : str
+        Name of households and persons csv file to write.  
+        Pass None to return these rather than write.
+    
     Returns
     -------
     households, people : pandas.DataFrame
+        Only returns these if `write_households_csv` and `write_persons_csv`
+        are None.
     fit_quality : dict of FitQuality
         Keys are geographic IDs, values are namedtuples with attributes
         ``.household_chisq``, ``household_p``, ``people_chisq``,
@@ -110,6 +120,11 @@ def synthesize_all(recipe, num_geogs=None, indexes=None,
     cnt = 0
     fit_quality = {}
     hh_index_start = 0
+    
+    write_header = True
+    if write_households_csv and write_persons_csv:
+        hh_csvfile  = open(write_households_csv, 'w')
+        per_csvfile = open(write_persons_csv, 'w')
 
     # TODO will parallelization work here?
     for geog_id in indexes:
@@ -132,28 +147,44 @@ def synthesize_all(recipe, num_geogs=None, indexes=None,
         logger.debug("Person joint distribution")
         logger.debug(p_jd)
 
-        households, people, people_chisq, people_p = \
-            synthesize(
-                h_marg, p_marg, h_jd, p_jd, h_pums, p_pums,
-                marginal_zero_sub=marginal_zero_sub, jd_zero_sub=jd_zero_sub,
-                hh_index_start=hh_index_start)
+        try:
+            households, people, people_chisq, people_p = \
+                synthesize(
+                    h_marg, p_marg, h_jd, p_jd, h_pums, p_pums,
+                    marginal_zero_sub=marginal_zero_sub, jd_zero_sub=jd_zero_sub,
+                    hh_index_start=hh_index_start)
 
-        hh_list.append(households)
-        people_list.append(people)
-        key = tuple(geog_id.values)
-        # key = BlockGroupID(
-        #    geog_id['state'], geog_id['county'], geog_id['tract'],
-        #    geog_id['block group'])
-        fit_quality[key] = FitQuality(people_chisq, people_p)
+            if write_households_csv and write_persons_csv:
+                households.to_csv(hh_csvfile, index=False, header=write_header)
+                people.to_csv(per_csvfile, index=False, header=write_header)
+                write_header = False # do this once only
+            else:
+                hh_list.append(households)
+                people_list.append(people)
+                
+            key = tuple(geog_id.values)
+            # key = BlockGroupID(
+            #    geog_id['state'], geog_id['county'], geog_id['tract'],
+            #    geog_id['block group'])
+            fit_quality[key] = FitQuality(people_chisq, people_p)
+    
+            cnt += 1
+            if len(households) > 0:
+                hh_index_start = households.index.values[-1] + 1
+    
 
-        cnt += 1
-        if len(households) > 0:
-            hh_index_start = households.index.values[-1] + 1
+            if num_geogs is not None and cnt >= num_geogs:
+                break
+        
+        except Exception as e:
+            print "Exception caught: ",e
+            # continue
 
-        if num_geogs is not None and cnt >= num_geogs:
-            break
-
-    # TODO might want to write this to disk as we go?
-    return (
-        pd.concat(hh_list), pd.concat(people_list, ignore_index=True),
-        fit_quality)
+    if write_households_cvs and write_persons_csv:
+        hh_csvfile.close()
+        per_csvfile.close()
+        return fit_quality
+    else:
+        return (pd.concat(hh_list), 
+                pd.concat(people_list, ignore_index=True),
+                fit_quality)
