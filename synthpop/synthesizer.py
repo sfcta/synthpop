@@ -88,9 +88,7 @@ def synthesize(h_marg, p_marg, h_jd, p_jd, h_pums, p_pums,
 
 
 def synthesize_all(recipe, num_geogs=None, indexes=None,
-                   marginal_zero_sub=.01, jd_zero_sub=.001,
-                   write_households_csv=None,
-                   write_persons_csv=None):
+                   marginal_zero_sub=.01, jd_zero_sub=.001):
     """
     Parameters
     ----------
@@ -120,11 +118,6 @@ def synthesize_all(recipe, num_geogs=None, indexes=None,
     cnt = 0
     fit_quality = {}
     hh_index_start = 0
-    
-    write_header = True
-    if write_households_csv and write_persons_csv:
-        hh_csvfile  = open(write_households_csv, 'w')
-        per_csvfile = open(write_persons_csv, 'w')
 
     # TODO will parallelization work here?
     for geog_id in indexes:
@@ -154,12 +147,10 @@ def synthesize_all(recipe, num_geogs=None, indexes=None,
                     marginal_zero_sub=marginal_zero_sub, jd_zero_sub=jd_zero_sub,
                     hh_index_start=hh_index_start)
 
-            if write_households_csv and write_persons_csv:
-                households.to_csv(hh_csvfile, index=False, header=write_header)
-                people.to_csv(per_csvfile, index=False, header=write_header)
-                write_header = False # do this once only
-            else:
+            if not recipe.write_households(households):
                 hh_list.append(households)
+            
+            if not recipe.write_persons(people):
                 people_list.append(people)
                 
             key = tuple(geog_id.values)
@@ -180,11 +171,6 @@ def synthesize_all(recipe, num_geogs=None, indexes=None,
             print "Exception caught: ",e
             # continue
 
-    if write_households_cvs and write_persons_csv:
-        hh_csvfile.close()
-        per_csvfile.close()
-        return fit_quality
-    else:
-        return (pd.concat(hh_list), 
-                pd.concat(people_list, ignore_index=True),
-                fit_quality)
+    return (pd.concat(hh_list) if len(hh_list) > 0 else None, 
+            pd.concat(people_list, ignore_index=True) if len(people_list) > 0 else None,
+            fit_quality)

@@ -5,6 +5,9 @@ import pandas as pd
 
 # TODO DOCSTRINGS!!
 class Starter:
+    wrote_hh_header = False
+    wrote_pers_header = False
+    
     """
     This is a recipe for getting the marginals and joint distributions to use
     to pass to the synthesizer using simple categories - population, age,
@@ -21,6 +24,10 @@ class Starter:
         FIPS code for the county
     tract : string, optional
         FIPS code for a specific track or None for all tracts in the county
+    write_households_csv : string
+        Filename to write households csv.  Pass None to return them rather than write them.
+    write_persons_csv: string
+        Filename to write persons csv.  Pass None to return them rather than write them.
 
     Returns
     -------
@@ -37,11 +44,19 @@ class Starter:
     tract_to_puma_map : dictionary
         keys are tract ids and pumas are puma ids
     """
-    def __init__(self, key, state, county, tract=None):
+    def __init__(self, key, state, county, tract=None, write_households_csv=None, write_persons_csv=None):
         self.c = c = Census(key)
         self.state = state
         self.county = county
         self.tract = tract
+
+        self.hh_csvfile = None
+        if write_households_csv:
+            self.hh_csvfile  = open(write_households_csv, 'w')
+        self.per_csvfile = None
+        if write_persons_csv:
+            self.per_csvfile = open(write_persons_csv, 'w')
+
 
         income_columns = ['B19001_0%02dE' % i for i in range(1, 18)]
         vehicle_columns = ['B08201_0%02dE' % i for i in range(1, 7)]
@@ -210,3 +225,32 @@ class Starter:
             {"age": age_cat, "race": race_cat, "sex": sex_cat}
         )
         return p_pums, jd_persons
+
+    def write_households(self, households):
+        """
+        Return True if it's written.  Returns False otherwise, and the synthesizer will store it.
+        """
+        if self.hh_csvfile:
+            households.to_csv(self.hh_csvfile, index=False, header=not self.wrote_hh_header)
+            self.wrote_hh_header = True
+            return True
+        return False
+        
+    def write_persons(self, people):
+        """
+        Return True if it's written.  Returns False otherwise, and the synthesizer will store it.
+        """        
+        if self.per_csvfile:
+            people.to_csv(self.per_csvfile, index=False, header=not self.wrote_pers_header)
+            self.wrote_pers_header = True
+        return False
+
+    def __del__(self):
+        """
+        Destructor.  Close files if we have them.
+        """
+        print "Closing files!"
+        if self.hh_csvfile:
+            self.hh_csvfile.close()
+        if self.per_csvfile:
+            self.per_csvfile.close()

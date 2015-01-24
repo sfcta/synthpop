@@ -1,11 +1,12 @@
 from synthpop import categorizer as cat
 from synthpop.census_helpers import Census
+from synthpop.recipes.starter import Starter
 import csv
 import pandas as pd
 
 
 # TODO DOCSTRINGS!!
-class SFCTAStarter:
+class SFCTAStarter(Starter):
     """
     The SFCTA starter takes the tazdata as input and formulates the marginal controls from there.
 
@@ -27,13 +28,25 @@ class SFCTAStarter:
         joint distributions for the persons (from PUMS), one joint
         distribution for each PUMA (one row per PUMA)
     """
-    def __init__(self, key):
+    def __init__(self, key, write_households_csv=None, write_persons_csv=None):
         self.c = c = Census(key)
         
+        self.hh_csvfile = None
+        if write_households_csv:
+            self.hh_csvfile  = open(write_households_csv, 'w')
+        self.per_csvfile = None
+        if write_persons_csv:
+            self.per_csvfile = open(write_persons_csv, 'w')
+            
         # Read Y:\champ\landuse\p2011\SCS.JobsHousingConnection.Spring2013update\2010\PopSyn9County\inputs\converted\tazdata_converted.csv
         self.controls = pd.read_csv(r"Y:\champ\landuse\p2011\SCS.JobsHousingConnection.Spring2013update\2010\PopSyn9County\inputs\converted\tazdata_converted.csv",
                                     index_col = False)
+        # Remove 0-household controls
+        self.controls = self.controls[self.controls['HHLDS']>0]
         
+        self.controls = self.controls.iloc[:10,]
+        print len(self.controls)
+
         self.hh_controls = cat.categorize(self.controls, 
             {("income", "0-30k"  ): "HHINC030",
              ("income", "30-60k" ): "HHINC3060",
@@ -118,7 +131,7 @@ class SFCTAStarter:
 
         # this is cached so won't download more than once
         h_pums = self.c.download_household_pums(self.state, puma)
-        orig_len = len(h_pums)
+        # orig_len = len(h_pums)
         
         # TODO: filter out GQ and vacant housing
         # filter to housing unit only with number of persons > 0
@@ -194,3 +207,16 @@ class SFCTAStarter:
             {"age": age_cat }
         )
         return p_pums, jd_persons
+    
+    def write_households(self, households):
+        if self.hh_csvfile:
+            households.to_csv(self.hh_csvfile, index=False, header=not self.wrote_hh_header)
+            self.wrote_hh_header = True
+            return True
+        return False
+        
+    def write_persons(self, people):
+        if self.per_csvfile:
+            people.to_csv(self.per_csvfile, index=False, header=not self.wrote_pers_header)
+            self.wrote_pers_header = True
+        return False    

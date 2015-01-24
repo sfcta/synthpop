@@ -11,16 +11,16 @@ state_abbr = sys.argv[1]
 county_name = sys.argv[2]
 
 # enable_logging()
-starter = SFCTAStarter(os.environ["CENSUS"])
+starter = SFCTAStarter(os.environ["CENSUS"],
+                       write_households_csv="households.csv",
+                       write_persons_csv="persons.csv")
 
 # indexes = [pd.Series([87],index=["SFTAZ"]),
 #           pd.Series([88],index=["SFTAZ"])]
 indexes = None
 
 
-households, people, fit_quality = synthesize_all(starter, indexes=indexes,
-                                                 write_households_csv="households.csv",
-                                                 write_persons_csv="persons.csv")
+households, people, fit_quality = synthesize_all(starter, indexes=indexes)
 
 for geo, qual in fit_quality.items():
     print 'Geography: {}'.format(geo[0])
