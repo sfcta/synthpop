@@ -2,6 +2,7 @@ from synthpop import categorizer as cat
 from synthpop.census_helpers import Census
 from synthpop.recipes.starter import Starter
 import csv
+import numpy as np
 import pandas as pd
 
 
@@ -38,13 +39,17 @@ class SFCTAStarter(Starter):
         if write_persons_csv:
             self.per_csvfile = open(write_persons_csv, 'w')
             
+        # start ids here
+        self.start_hhid = 1
+        self.start_persid = 1
+            
         # Read Y:\champ\landuse\p2011\SCS.JobsHousingConnection.Spring2013update\2010\PopSyn9County\inputs\converted\tazdata_converted.csv
         self.controls = pd.read_csv(r"Y:\champ\landuse\p2011\SCS.JobsHousingConnection.Spring2013update\2010\PopSyn9County\inputs\converted\tazdata_converted.csv",
                                     index_col = False)
         # Remove 0-household controls
         self.controls = self.controls[self.controls['HHLDS']>0]
         
-        self.controls = self.controls.iloc[:10,]
+        self.controls = self.controls.iloc[:2,]
         print len(self.controls)
 
         self.hh_controls = cat.categorize(self.controls, 
@@ -131,12 +136,54 @@ class SFCTAStarter(Starter):
 
         # this is cached so won't download more than once
         h_pums = self.c.download_household_pums(self.state, puma)
-        # orig_len = len(h_pums)
+        orig_len = len(h_pums)
         
-        # TODO: filter out GQ and vacant housing
         # filter to housing unit only with number of persons > 0
-        # h_pums = h_pums[(h_pums['TYPE']==1)&(h_pums['NP']>0)]
-        # print "filtered to %d households from %d originally" % (len(h_pums), orig_len)
+        h_pums = h_pums[h_pums['NP']>0]
+        # Only Housing units
+        h_pums = h_pums[h_pums['TYPE']==1]
+        print "Filtered to %d households from %d originally" % (len(h_pums), orig_len)
+        
+        # Get some attributes from the persons in the households
+        # Household age categories
+        p_pums = self.c.download_population_pums(self.state, puma)
+        p_pums['_hhadlt'] = p_pums['AGEP']>=16
+        p_pums['_hh65up'] = p_pums['AGEP']>=65
+        p_pums['_hh5064'] = (p_pums['AGEP']>=50)&(p_pums['AGEP']<=64)
+        p_pums['_hh3549'] = (p_pums['AGEP']>=35)&(p_pums['AGEP']<=49)
+        p_pums['_hh2534'] = (p_pums['AGEP']>=25)&(p_pums['AGEP']<=34)
+        p_pums['_hh1824'] = (p_pums['AGEP']>=18)&(p_pums['AGEP']<=24)
+        p_pums['_hh1217'] = (p_pums['AGEP']>=12)&(p_pums['AGEP']<=17)
+        p_pums['_hhc511'] = (p_pums['AGEP']>= 5)&(p_pums['AGEP']<=11)
+        p_pums['_hhchu5'] = (p_pums['AGEP']<  5)
+            
+        # worker: ESR (Employment Status Recode) in 1,2,4,5
+        # full time: WKHP (usual hours worked per week) >= 35
+        p_pums['_hhfull'] = ((p_pums['ESR']==1)|(p_pums['ESR']==2)|(p_pums['ESR']==4)|(p_pums['ESR']==5))&(p_pums['WKHP']>=35)
+        # part time: WKHP < 35 
+        p_pums['_hhpart'] = ((p_pums['ESR']==1)|(p_pums['ESR']==2)|(p_pums['ESR']==4)|(p_pums['ESR']==5))&(p_pums['WKHP']< 35)
+
+        # group them to household and sum
+        people_grouped = p_pums.loc[:,['serialno',
+                                       '_hhadlt','_hh65up','_hh5064',
+                                       '_hh3549','_hh2534','_hh1824',
+                                       '_hh1217','_hhc511','_hhchu5',
+                                       '_hhfull','_hhpart']].groupby(['serialno'])
+        people_grouped_sum = people_grouped.sum()
+        people_grouped_sum.rename(columns={'_hhadlt':'hhadlt',
+                                           '_hh65up':'hh65up',
+                                           '_hh5064':'hh5064',
+                                           '_hh3549':'hh3549',
+                                           '_hh2534':'hh2534',
+                                           '_hh1824':'hh1824',
+                                           '_hh1217':'hh1217',
+                                           '_hhc511':'hhc511',
+                                           '_hhchu5':'hhchu5',
+                                           '_hhfull':'hhfull',
+                                           '_hhpart':'hhpart'}, inplace=True)
+        people_grouped_sum.reset_index(inplace=True)
+        h_pums = h_pums.merge(people_grouped_sum, how='left')
+        h_pums['workers'] = h_pums['hhfull']+h_pums['hhpart']
         
         def hhsize_cat(r):
             # NP = number of persons
@@ -167,11 +214,11 @@ class SFCTAStarter(Starter):
 
         def workers_cat(r):
             # hmm... WIF = Workers in Family.  What about non-family households?
-            if r.WIF >= 3:
+            if r.workers >= 3:
                 return "3+"
-            elif r.WIF == 2:
+            elif r.workers == 2:
                 return "2"
-            elif r.WIF == 1:
+            elif r.workers == 1:
                 return "1"
             return "0"
 
@@ -189,6 +236,15 @@ class SFCTAStarter(Starter):
         
         # this is cached so won't download more than once
         p_pums = self.c.download_population_pums(self.state, puma)
+        h_pums = self.c.download_household_pums(self.state, puma)
+        h_pums = h_pums.loc[:,['serialno','TYPE','NP']]
+        
+        # add some household fields
+        orig_len = len(p_pums)
+        p_pums = p_pums.merge(h_pums, how='left')
+        p_pums = p_pums.loc[p_pums['TYPE']==1]
+        # p_pums['hhadlt'] = len(p_pums['hh_id'])
+        print "Filtered to %d persons from %d originally" % (len(p_pums), orig_len)
 
         def age_cat(r):
             if r.AGEP <= 4:
@@ -208,15 +264,81 @@ class SFCTAStarter(Starter):
         )
         return p_pums, jd_persons
     
-    def write_households(self, households):
+    def write_households(self, geog_id, households):
         if self.hh_csvfile:
-            households.to_csv(self.hh_csvfile, index=False, header=not self.wrote_hh_header)
+            
+            # store the households for persons, filtering out zero-person households
+            self.households = households
+            self.hh_geog_id = geog_id
+
+            # add TAZ
+            self.households['taz'] = geog_id.SFTAZ            
+            
+            self.households['hhid'] = range(self.start_hhid, self.start_hhid+len(self.households))
+            self.start_hhid = self.start_hhid + len(self.households)
+
+            self.households.to_csv(self.hh_csvfile, index=False, header=not self.wrote_hh_header)
             self.wrote_hh_header = True
             return True
         return False
         
-    def write_persons(self, people):
+    def write_persons(self, geog_id, people):
         if self.per_csvfile:
+            # get rid of extraneous columns
+            people = people.loc[:,['serialno','SPORDER','PUMA00','PUMA10',
+                                   'AGEP','TYPE','ESR','WKHP','age','cat_id','hh_id']]
+            
+            # we want the taz column
+            people['taz'] = geog_id.SFTAZ
+
+            # get some back from households
+            hhs = self.households.loc[:,
+                                      ['serialno',
+                                       'hhsize','hhadlt',
+                                       'hh65up','hh5064','hh3549',
+                                       'hh2534','hh1824','hh1217',
+                                       'hhc511','hhchu5',
+                                       'hhfull','hhpart','workers']]                        
+            people = people.merge(hhs, how='left', on=['serialno'])
+            
+            # rename some of these
+            people.rename(columns={'NP':'hhsize'}, inplace=True)
+
+            # print list(people.columns.values)
+            # print people.head()
+            
+            # calculate a few fields
+            people.sort(columns=['hh_id','SPORDER'], inplace=True)
+            people['hhid']   = people['hh_id']+1 # index from 1, not 0
+            people['persid'] = range(self.start_persid, self.start_persid+len(people))
+            self.start_persid = self.start_persid + len(people)
+            
+
+            # these are the columns we want
+            # http://intranet/Modeling/DisaggregateInputOutputKey
+            people = people.loc[:,['hhid',
+                                   'persid',
+                                   'taz',
+                                   'hhsize',
+                                   'hhadlt',
+                                   'hh65up','hh5064','hh3549',
+                                   'hh2534','hh1824','hh1217',
+                                   'hhc511','hhchu5',
+                                   'hhfull','hhpart','workers',
+                                   # for debugging
+                                   'serialno','SPORDER','PUMA00','PUMA10','AGEP','TYPE',
+                                   'ESR','WKHP',
+                                   'age','cat_id','hh_id']]
+
+
+            # This should be a test!
+            # people_allages = people['hh65up']+people['hh5064']+people['hh3549']+ \
+            #                  people['hh2534']+people['hh1824']+people['hh1217']+ \
+            #                  people['hhc511']+people['hhchu5']
+            # people_allages = people_allages.astype(np.int64)
+            # from pandas.util.testing import assert_series_equal
+            # assert_series_equal(people_allages,people['hhsize'])
+
             people.to_csv(self.per_csvfile, index=False, header=not self.wrote_pers_header)
             self.wrote_pers_header = True
         return False    

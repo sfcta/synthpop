@@ -1,5 +1,6 @@
 import logging
 import sys
+import traceback
 from collections import namedtuple
 
 import numpy as np
@@ -147,10 +148,10 @@ def synthesize_all(recipe, num_geogs=None, indexes=None,
                     marginal_zero_sub=marginal_zero_sub, jd_zero_sub=jd_zero_sub,
                     hh_index_start=hh_index_start)
 
-            if not recipe.write_households(households):
+            if not recipe.write_households(geog_id, households):
                 hh_list.append(households)
             
-            if not recipe.write_persons(people):
+            if not recipe.write_persons(geog_id, people):
                 people_list.append(people)
                 
             key = tuple(geog_id.values)
@@ -168,7 +169,8 @@ def synthesize_all(recipe, num_geogs=None, indexes=None,
                 break
         
         except Exception as e:
-            print "Exception caught: ",e
+            print "Exception caught: ", sys.exc_info()[0]
+            print traceback.format_exc()
             # continue
 
     return (pd.concat(hh_list) if len(hh_list) > 0 else None, 

@@ -226,7 +226,7 @@ class Starter:
         )
         return p_pums, jd_persons
 
-    def write_households(self, households):
+    def write_households(self, geog_id, households):
         """
         Return True if it's written.  Returns False otherwise, and the synthesizer will store it.
         """
@@ -236,7 +236,7 @@ class Starter:
             return True
         return False
         
-    def write_persons(self, people):
+    def write_persons(self, geog_id, people):
         """
         Return True if it's written.  Returns False otherwise, and the synthesizer will store it.
         """        
@@ -249,8 +249,9 @@ class Starter:
         """
         Destructor.  Close files if we have them.
         """
-        print "Closing files!"
         if self.hh_csvfile:
+            print "Closing household file"
             self.hh_csvfile.close()
         if self.per_csvfile:
+            print "Closing person file"
             self.per_csvfile.close()
