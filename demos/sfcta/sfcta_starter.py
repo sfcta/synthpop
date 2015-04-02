@@ -8,6 +8,8 @@ import pandas as pd
 
 # TODO DOCSTRINGS!!
 class SFCTAStarter(Starter):
+    CENSUS_DATA_DIR = r"Q:\Model Development\Population Synthesizer\2. Base Year Eval\PopGen input from ACS20082012\by_st_puma10\\"
+    FIPS_FILE       = r"..\input_data\national_county.txt"
     """
     The SFCTA starter takes the tazdata as input and formulates the marginal controls from there.
 
@@ -30,7 +32,8 @@ class SFCTAStarter(Starter):
         distribution for each PUMA (one row per PUMA)
     """
     def __init__(self, key, write_households_csv=None, write_persons_csv=None):
-        self.c = c = Census(key)
+        # Starter.__init__(self, key, '06', '075')
+        self.c = Census(key, base_url=SFCTAStarter.CENSUS_DATA_DIR, fips_url=SFCTAStarter.FIPS_FILE)
         
         self.hh_csvfile = None
         if write_households_csv:

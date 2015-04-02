@@ -7,13 +7,13 @@ import us
 # TODO DOCSTRING!!
 class Census:
 
-    def __init__(self, key):
+    def __init__(self, key, base_url=None, fips_url=None):
         self.c = census.Census(key)
         self.pums_relationship_file_url = "https://www.census.gov/geo/" \
                                           "maps-data/data/docs/rel/2010_"\
                                           "Census_Tract_to_2010_PUMA.txt"
         self.pums_relationship_df = None
-        self.base_url = "http://paris.urbansim.org/data/pums/"
+        self.base_url = base_url if base_url else "http://paris.urbansim.org/data/pums/"
         self.pums_population_base_url = \
             self.base_url + "puma_p_%s_%s.csv"
         self.pums_household_base_url = \
@@ -22,8 +22,8 @@ class Census:
             self.base_url + "puma_p_%s.csv"
         self.pums_household_state_base_url = \
             self.base_url + "puma_h_%s.csv"
-        self.fips_url = "https://www.census.gov/geo/reference/codes/files/" \
-                        "national_county.txt"
+        self.fips_url = fips_url if fips_url else \
+            "https://www.census.gov/geo/reference/docs/codes/national_county.txt"
         self.fips_df = None
         self.pums_cache = {}
 
@@ -166,13 +166,15 @@ class Census:
     def download_population_pums(self, state, puma=None):
         state = self.try_fips_lookup(state)
         if puma is None:
-            return self._read_csv(self.pums_population_state_base_url % (state))
+            return self._read_csv()
+        # print self.pums_population_base_url % (state, puma)
         return self._read_csv(self.pums_population_base_url % (state, puma))
 
     def download_household_pums(self, state, puma=None):
         state = self.try_fips_lookup(state)
         if puma is None:
             return self._read_csv(self.pums_household_state_base_url % (state))
+        # print self.pums_household_base_url % (state, puma)        
         return self._read_csv(self.pums_household_base_url % (state, puma))
 
     def try_fips_lookup(self, state, county=None):
