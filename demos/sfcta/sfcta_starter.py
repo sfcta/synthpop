@@ -1,7 +1,7 @@
 from synthpop import categorizer as cat
 from synthpop.census_helpers import Census
 from synthpop.recipes.starter import Starter
-import csv
+import csv, sys
 import numpy as np
 import pandas as pd
 
@@ -56,28 +56,28 @@ class SFCTAStarter(Starter):
         print len(self.controls)
 
         self.hh_controls = cat.categorize(self.controls, 
-            {("income", "0-30k"  ): "HHINC030",
-             ("income", "30-60k" ): "HHINC3060",
-             ("income", "60-100k"): "HHINC60100",
-             ("income", "100k+"  ): "HHINC100P",
-             ("hhsize", "1"      ): "SZ1_HHLDS",
-             ("hhsize", "2"      ): "SZ2_HHLDS",
-             ("hhsize", "3"      ): "SZ3_HHLDS",
-             ("hhsize", "4"      ): "SZ4_HHLDS",
-             ("hhsize", "5+"     ): "SZ5_HHLDS",
-             ("workers", "0"     ): "WKR0_HHLDS",
-             ("workers", "1"     ): "WKR1_HHLDS",
-             ("workers", "2"     ): "WKR2_HHLDS",
-             ("workers", "3+"    ): "WKR3_HHLDS" },
+            {("income_cat", "0-30k"  ): "HHINC030",
+             ("income_cat", "30-60k" ): "HHINC3060",
+             ("income_cat", "60-100k"): "HHINC60100",
+             ("income_cat", "100k+"  ): "HHINC100P",
+             ("hhsize_cat", "1"      ): "SZ1_HHLDS",
+             ("hhsize_cat", "2"      ): "SZ2_HHLDS",
+             ("hhsize_cat", "3"      ): "SZ3_HHLDS",
+             ("hhsize_cat", "4"      ): "SZ4_HHLDS",
+             ("hhsize_cat", "5+"     ): "SZ5_HHLDS",
+             ("workers_cat", "0"     ): "WKR0_HHLDS",
+             ("workers_cat", "1"     ): "WKR1_HHLDS",
+             ("workers_cat", "2"     ): "WKR2_HHLDS",
+             ("workers_cat", "3+"    ): "WKR3_HHLDS" },
                                           index_cols=['SFTAZ'])
         
         # todo: add HAGE1KIDS0, HAGE1KIDS1, HAGE1KIDSWHATEV
         self.person_controls = cat.categorize(self.controls,
-            {("age", "0-4"  ): "AGE0004",
-             ("age", "5-19" ): "AGE0519",
-             ("age", "20-44"): "AGE2044",
-             ("age", "45-64"): "AGE4564",
-             ("age", "65+"  ): "AGE65P"},
+            {("age_cat", "0-4"  ): "AGE0004",
+             ("age_cat", "5-19" ): "AGE0519",
+             ("age_cat", "20-44"): "AGE2044",
+             ("age_cat", "45-64"): "AGE4564",
+             ("age_cat", "65+"  ): "AGE65P"},
                                           index_cols=['SFTAZ'])
 
         self.tazToPUMA2010 = pd.read_csv(r"Q:\Model Development\Population Synthesizer\4. Geographic Work\Census 2010 PUMAs\TAZ2454_to_Census2010PUMAs.csv",
@@ -183,16 +183,16 @@ class SFCTAStarter(Starter):
         p_pums.loc[p_pums._hhpart==True, 'employ'] = 2
         p_pums.loc[(p_pums.COW==6)|(p_pums.COW==7), 'employ'] += 2
         
-        p_pums['educ'] = 0
-        p_pums.loc[p_pums.SCHG==1, 'educ'] = 1    # Nursery school/preschool
-        p_pums.loc[p_pums.SCHG==2, 'educ'] = 2    # Kindergarten
-        p_pums.loc[(p_pums.SCHG>= 3)&(p_pums.SCHG<= 6), 'educ'] = 3 # Grade 1-4
-        p_pums.loc[(p_pums.SCHG>= 7)&(p_pums.SCHG<=10), 'educ'] = 4 # Grade 5-8
-        p_pums.loc[(p_pums.SCHG>=11)&(p_pums.SCHG<=14), 'educ'] = 5 # Grade 9-12
-        p_pums.loc[p_pums.SCHG==15, 'educ'] = 6    # College undergraduate
-        p_pums.loc[p_pums.SCHG==16, 'educ'] = 7    # Graduate or professional school
+        p_pums['educn'] = 0
+        p_pums.loc[p_pums.SCHG==1, 'educn'] = 1    # Nursery school/preschool
+        p_pums.loc[p_pums.SCHG==2, 'educn'] = 2    # Kindergarten
+        p_pums.loc[(p_pums.SCHG>= 3)&(p_pums.SCHG<= 6), 'educn'] = 3 # Grade 1-4
+        p_pums.loc[(p_pums.SCHG>= 7)&(p_pums.SCHG<=10), 'educn'] = 4 # Grade 5-8
+        p_pums.loc[(p_pums.SCHG>=11)&(p_pums.SCHG<=14), 'educn'] = 5 # Grade 9-12
+        p_pums.loc[p_pums.SCHG==15, 'educn'] = 6    # College undergraduate
+        p_pums.loc[p_pums.SCHG==16, 'educn'] = 7    # Graduate or professional school
 
-        # group them to household and sum
+        # group them to household unit serial number and sum
         people_grouped = p_pums.loc[:,['serialno',
                                        '_hhadlt','_hh65up','_hh5064',
                                        '_hh3549','_hh2534','_hh1824',
@@ -211,6 +211,14 @@ class SFCTAStarter(Starter):
                                            '_hhfull':'hhfull',
                                            '_hhpart':'hhpart'}, inplace=True)
         people_grouped_sum.reset_index(inplace=True)
+        
+        # These shouldn't be floats but pandas is summing bools that way
+        # https://github.com/pydata/pandas/issues/7001
+        cols = ['hhadlt','hh65up','hh5064','hh3549','hh2534','hh1824',
+                'hh1217','hhc511','hhchu5','hhfull','hhpart']
+
+        people_grouped_sum[cols] = people_grouped_sum[cols].astype(int)
+        
         h_pums = h_pums.merge(people_grouped_sum, how='left')
         h_pums['workers'] = h_pums['hhfull']+h_pums['hhpart']
         
@@ -264,13 +272,14 @@ class SFCTAStarter(Starter):
         h_pums, jd_households = cat.joint_distribution(
             h_pums,
             cat.category_combinations(self.hh_controls.columns),
-            {"hhsize": hhsize_cat,
-             "income": income_cat,
-             "workers": workers_cat}
+            {"hhsize_cat": hhsize_cat,
+             "income_cat": income_cat,
+             "workers_cat": workers_cat}
         )
         # cache them
         self.h_pums[puma]           = h_pums
         self.jd_households[puma]    = jd_households
+
         return h_pums, jd_households
 
     def get_person_joint_dist_for_geography(self, ind):
@@ -305,7 +314,7 @@ class SFCTAStarter(Starter):
         p_pums, jd_persons = cat.joint_distribution(
             p_pums,
             cat.category_combinations(self.person_controls.columns),
-            {"age": age_cat }
+            {"age_cat": age_cat }
         )
         # cache them
         self.p_pums[puma]       = p_pums
@@ -335,9 +344,9 @@ class SFCTAStarter(Starter):
             return False
         
         # get rid of extraneous columns
-        people = people.loc[:,['race','employ','educ','serialno','SPORDER','PUMA00','PUMA10',
-                               'AGEP','TYPE','ESR','WKHP','COW','SEX','RELP',
-                               'RAC1P','HISP','SCHG','age','cat_id','hh_id']]
+        people = people.loc[:,['race','employ','educn','serialno','SPORDER','PUMA00','PUMA10',
+                               'NP','AGEP','TYPE','ESR','WKHP','COW','SEX','RELP',
+                               'RAC1P','HISP','SCHG','cat_id','hh_id']]
             
         # we want the taz column
         people['taz'] = geog_id.SFTAZ
@@ -345,7 +354,7 @@ class SFCTAStarter(Starter):
         # get some back from households
         hhs = self.households.loc[:,
                                   ['serialno',
-                                   'hhsize','hhadlt',
+                                   'hhadlt',
                                    'hh65up','hh5064','hh3549',
                                    'hh2534','hh1824','hh1217',
                                    'hhc511','hhchu5',
@@ -360,6 +369,8 @@ class SFCTAStarter(Starter):
                                'SEX':'gender',
                                'AGEP':'age',
                                'RELP':'relat'}, inplace=True)
+        # this might be blank so it's a float: make it an int
+        people.hhvehs = people.hhvehs.fillna(0.0).astype(int)
         
         # calculate a few fields
         people.sort(columns=['hh_id','SPORDER'], inplace=True)
@@ -383,11 +394,11 @@ class SFCTAStarter(Starter):
              'relat',
              'race',
              'employ',
-             'educ',
+             'educn',]
              # for debugging
-             'serialno','SPORDER','PUMA00','PUMA10','TYPE',
-             'ESR','ESR','WKHP','COW','SCHG',
-             'cat_id','hh_id']
+             #'serialno','SPORDER','PUMA00','PUMA10','TYPE',
+             #'ESR','ESR','WKHP','COW','SCHG',
+             #'cat_id','hh_id']
             
         # for field in output_fields:
         #     try:
@@ -398,7 +409,6 @@ class SFCTAStarter(Starter):
             
         people = people.loc[:,output_fields]
 
-
         # This should be a test!
         # people_allages = people['hh65up']+people['hh5064']+people['hh3549']+ \
         #                  people['hh2534']+people['hh1824']+people['hh1217']+ \
@@ -407,6 +417,6 @@ class SFCTAStarter(Starter):
         # from pandas.util.testing import assert_series_equal
         # assert_series_equal(people_allages,people['hhsize'])
 
-        people.to_csv(self.per_csvfile, index=False, header=not self.wrote_pers_header)
+        people.to_csv(self.per_csvfile, index=False, header=not self.wrote_pers_header, float_format="%.3f")
         self.wrote_pers_header = True
         return True
