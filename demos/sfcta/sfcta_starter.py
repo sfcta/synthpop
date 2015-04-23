@@ -32,6 +32,9 @@ class SFCTAStarter(Starter):
         distribution for each PUMA (one row per PUMA)
     """
     def __init__(self, key, write_households_csv=None, write_persons_csv=None):
+        pd.options.display.width = 200
+        pd.options.display.float_format = '{:,.3f}'.format
+
         # Starter.__init__(self, key, '06', '075')
         self.c = Census(key, base_url=SFCTAStarter.CENSUS_DATA_DIR, fips_url=SFCTAStarter.FIPS_FILE)
         
@@ -71,6 +74,23 @@ class SFCTAStarter(Starter):
              ("workers_cat", "3+"    ): "WKR3_HHLDS" },
                                           index_cols=['SFTAZ'])
         
+        # print self.hh_controls.loc[1:10,:]
+
+        # cat_name  hhsize_cat                               income_cat                        workers_cat
+        # cat_value          1       2      3      4      5+      0-30k  100k+  30-60k 60-100k           0       1       2      3+
+        # SFTAZ                                                                                                                  
+        # 1             28.365  46.970 40.260 49.410 139.995     51.540 61.848 130.700  59.912      52.155  93.025  96.990  62.830
+        # 2             36.663  54.540 45.147 51.207 115.443     54.976 73.970  83.514  90.540      48.783  81.507  93.627  79.083
+        # 3             73.610 104.353 77.074 71.012 106.951    261.136 28.188 106.849  37.827     158.911 196.149  67.115  10.825
+        # 4             45.133  67.140 55.577 63.037 142.113     67.002 90.663 102.678 111.657      60.053 100.337 115.257  97.353
+        # 5             34.038  56.364 48.312 59.292 167.994     62.707 75.211 157.363  71.719      62.586 111.630 116.388  75.396
+        # 6             65.403  94.302 78.078 85.176 184.041    144.312 50.742 138.288 173.658      84.669 148.551 159.705 114.075
+        # 7             46.920  66.516 49.128 45.264  68.172    166.646 17.759  68.419  24.176     101.292 125.028  42.780   6.900
+        # 8             54.282  74.883 56.898 53.301  87.636     67.002 74.937  95.038  90.023      61.476 126.222 104.967  34.335
+        # 9             42.471  63.180 52.299 59.319 133.731     63.566 85.465  97.339 105.630      56.511  94.419 108.459  91.611
+        # 10            55.480  77.140 60.800 62.700 123.880     90.195 64.092 101.710 124.003      68.780 134.520 122.740  53.960
+
+
         # todo: add HAGE1KIDS0, HAGE1KIDS1, HAGE1KIDSWHATEV
         self.person_controls = cat.categorize(self.controls,
             {("age_cat", "0-4"  ): "AGE0004",
@@ -80,6 +100,22 @@ class SFCTAStarter(Starter):
              ("age_cat", "65+"  ): "AGE65P"},
                                           index_cols=['SFTAZ'])
 
+        # print self.person_controls.loc[1:10,:]
+
+        # cat_name  age_cat                     
+        # cat_value     0-4 20-44 45-64 5-19  65+
+        # SFTAZ                                  
+        # 1             112   458   301  285  142
+        # 2              77   404   328  201  186
+        # 3             212   455   240  426  119
+        # 4              95   498   404  248  230
+        # 5             134   550   362  343  170
+        # 6             126   647   551  347  292
+        # 7             135   291   153  272   76
+        # 8              82   366   304  185  188
+        # 9              89   468   380  233  216
+        # 10            101   484   370  275  198
+        
         self.tazToPUMA2010 = pd.read_csv(r"Q:\Model Development\Population Synthesizer\4. Geographic Work\Census 2010 PUMAs\TAZ2454_to_Census2010PUMAs.csv",
                                          index_col=0, converters = {'PUMA2010':str})
         
@@ -101,7 +137,7 @@ class SFCTAStarter(Starter):
         # print "get_available_geography_ids"
         # return the ids of the geographies, in this case a state, county,
         # tract, block_group id tuple
-        for tup in self.person_controls.index:
+        for tup in self.person_controls.index: # [:1]:
             yield pd.Series(tup, index=self.person_controls.index.names)
 
     def get_household_marginal_for_geography(self, ind):
@@ -360,8 +396,9 @@ class SFCTAStarter(Starter):
                                    'hhc511','hhchu5',
                                    'hhfull','hhpart','workers',
                                    'VEH',
-                                   'hhinc']]                        
-        people = people.merge(hhs, how='left', on=['serialno'])
+                                   'hhinc','income_cat']]
+        hhs.drop_duplicates(inplace=True)
+        people = people.merge(hhs, how='left')
         
         # rename some of these
         people.rename(columns={'NP':'hhsize',
@@ -394,9 +431,10 @@ class SFCTAStarter(Starter):
              'relat',
              'race',
              'employ',
-             'educn',]
+             'educn',
              # for debugging
-             #'serialno','SPORDER','PUMA00','PUMA10','TYPE',
+             'SPORDER','workers','income_cat']
+             #'serialno','PUMA00','PUMA10','TYPE',
              #'ESR','ESR','WKHP','COW','SCHG',
              #'cat_id','hh_id']
             
