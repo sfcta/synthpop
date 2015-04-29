@@ -137,7 +137,7 @@ class SFCTAStarter(Starter):
         # print "get_available_geography_ids"
         # return the ids of the geographies, in this case a state, county,
         # tract, block_group id tuple
-        for tup in self.person_controls.index: # [:1]:
+        for tup in self.person_controls.index: # [:10]:
             yield pd.Series(tup, index=self.person_controls.index.names)
 
     def get_household_marginal_for_geography(self, ind):
@@ -227,6 +227,12 @@ class SFCTAStarter(Starter):
         p_pums.loc[(p_pums.SCHG>=11)&(p_pums.SCHG<=14), 'educn'] = 5 # Grade 9-12
         p_pums.loc[p_pums.SCHG==15, 'educn'] = 6    # College undergraduate
         p_pums.loc[p_pums.SCHG==16, 'educn'] = 7    # Graduate or professional school
+        
+        # recode
+        p_pums['relat'] = -1
+        p_pums.loc[p_pums.RELP <= 10, 'relat'] = p_pums.RELP + 1
+        p_pums.loc[p_pums.RELP >= 11, 'relat'] = p_pums.RELP + 6
+        assert(len(p_pums.loc[p_pums.relat < 1])==0)
 
         # group them to household unit serial number and sum
         people_grouped = p_pums.loc[:,['serialno',
@@ -380,8 +386,9 @@ class SFCTAStarter(Starter):
             return False
         
         # get rid of extraneous columns
-        people = people.loc[:,['race','employ','educn','serialno','SPORDER','PUMA00','PUMA10',
-                               'NP','AGEP','TYPE','ESR','WKHP','COW','SEX','RELP',
+        people = people.loc[:,['race','employ','educn','relat','serialno',
+                               'SPORDER','PUMA00','PUMA10',
+                               'NP','AGEP','TYPE','ESR','WKHP','COW','SEX',
                                'RAC1P','HISP','SCHG','cat_id','hh_id']]
             
         # we want the taz column
@@ -404,8 +411,7 @@ class SFCTAStarter(Starter):
         people.rename(columns={'NP':'hhsize',
                                'VEH':'hhvehs',
                                'SEX':'gender',
-                               'AGEP':'age',
-                               'RELP':'relat'}, inplace=True)
+                               'AGEP':'age'}, inplace=True)
         # this might be blank so it's a float: make it an int
         people.hhvehs = people.hhvehs.fillna(0.0).astype(int)
         
