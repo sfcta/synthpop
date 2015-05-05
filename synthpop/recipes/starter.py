@@ -28,6 +28,8 @@ class Starter:
         Filename to write households csv.  Pass None to return them rather than write them.
     write_persons_csv: string
         Filename to write persons csv.  Pass None to return them rather than write them.
+    write_append: boolean
+        Append to households and persons file if true.
 
     Returns
     -------
@@ -44,7 +46,8 @@ class Starter:
     tract_to_puma_map : dictionary
         keys are tract ids and pumas are puma ids
     """
-    def __init__(self, key, state, county, tract=None, write_households_csv=None, write_persons_csv=None):
+    def __init__(self, key, state, county, tract=None,
+                  write_households_csv=None, write_persons_csv=None, write_append=False):
         self.c = c = Census(key)
         self.state = state
         self.county = county
@@ -52,10 +55,14 @@ class Starter:
 
         self.hh_csvfile = None
         if write_households_csv:
-            self.hh_csvfile  = open(write_households_csv, 'w')
+            self.hh_csvfile  = open(write_households_csv, 'a' if write_append else 'w')
         self.per_csvfile = None
         if write_persons_csv:
-            self.per_csvfile = open(write_persons_csv, 'w')
+            self.per_csvfile = open(write_persons_csv, 'a' if write_append else 'w')
+        # if appending, no header
+        if write_append:
+            self.wrote_hh_header = True
+            self.wrote_pers_header = True
 
 
         income_columns = ['B19001_0%02dE' % i for i in range(1, 18)]
