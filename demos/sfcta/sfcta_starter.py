@@ -217,6 +217,7 @@ class SFCTAStarter(Starter):
 
         self.households.to_csv(self.hh_csvfile, index=False, header=not self.wrote_hh_header)
         self.wrote_hh_header = True
+        print "Wrote %d households" % len(households)
         return True
         
     def write_persons(self, geog_id, people):
@@ -242,8 +243,9 @@ class SFCTAStarter(Starter):
                                    'hhfull','hhpart','workers',
                                    'VEH',
                                    'hhinc','income_cat']]
-        hhs.drop_duplicates(inplace=True)
-        people = people.merge(hhs, how='left')
+
+        hhs.drop_duplicates(subset='serialno',inplace=True)
+        people = people.merge(hhs, how='left', on='serialno')
         
         # rename some of these
         people.rename(columns={'NP':'hhsize',
@@ -300,4 +302,5 @@ class SFCTAStarter(Starter):
 
         people.to_csv(self.per_csvfile, index=False, header=not self.wrote_pers_header, float_format="%.3f")
         self.wrote_pers_header = True
+        print "Wrote %d people" % len(people)
         return True
