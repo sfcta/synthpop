@@ -80,7 +80,7 @@ class SFCTAStarter(Starter):
         # print "get_available_geography_ids"
         # return the ids of the geographies, in this case a state, county,
         # tract, block_group id tuple
-        for tup in self.person_controls.index: # [:10]:
+        for tup in self.person_controls.index: # [:30]:
             yield pd.Series(tup, index=self.person_controls.index.names)
 
     def get_household_marginal_for_geography(self, ind):
@@ -276,12 +276,7 @@ class SFCTAStarter(Starter):
              'relat',
              'race',
              'employ',
-             'educn',
-             # for debugging
-             'SPORDER','workers','income_cat']
-             #'serialno','PUMA00','PUMA10','TYPE',
-             #'ESR','ESR','WKHP','COW','SCHG',
-             #'cat_id','hh_id']
+             'educn']
             
         # for field in output_fields:
         #     try:

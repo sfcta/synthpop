@@ -154,7 +154,9 @@ class SFCTAStarterGroupQuarters(SFCTAStarter):
         # Only Group Quarters
         p_pums = p_pums.loc[p_pums['TYPE']>=2]
         print "Filtered to %d GQ persons from %d originally" % (len(p_pums), orig_len)
-
+        
+        assert(len(p_pums.loc[p_pums.RELP<16])==0)
+        
         def gqage_cat(r):
             if r.AGEP <= 64:
                 return "0-64"
