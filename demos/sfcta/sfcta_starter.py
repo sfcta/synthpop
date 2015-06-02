@@ -153,7 +153,8 @@ class SFCTAStarter(Starter):
         p_pums['employ']  = 5  # not employed
         p_pums.loc[p_pums._hhfull==True, 'employ'] = 1
         p_pums.loc[p_pums._hhpart==True, 'employ'] = 2
-        p_pums.loc[(p_pums.COW==6)|(p_pums.COW==7), 'employ'] += 2
+        # employed but Class of Worker = Self-employed
+        p_pums.loc[(p_pums.employ<5)&((p_pums.COW==6)|(p_pums.COW==7)), 'employ'] += 2
         
         p_pums['educn'] = 0
         p_pums.loc[p_pums.SCHG==1, 'educn'] = 1    # Nursery school/preschool
