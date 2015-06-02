@@ -45,10 +45,10 @@ class SFCTAStarterHouseholds(SFCTAStarter):
         print "Household controls has length %d" % len(self.controls)
 
         self.hh_controls = cat.categorize(self.controls, 
-            {("income_cat", "0-25k"  ): "HHINC030",
-             ("income_cat", "25-45k" ): "HHINC3060",
-             ("income_cat", "45-75k"): "HHINC60100",
-             ("income_cat", "75k+"  ): "HHINC100P",
+            {("income_cat", "0-25k"  ): "HHINCQ1",
+             ("income_cat", "25-45k" ): "HHINCQ2",
+             ("income_cat", "45-75k" ): "HHINCQ3",
+             ("income_cat", "75k+"   ): "HHINCQ4",
              ("hhsize_cat", "1"      ): "SZ1_HHLDS",
              ("hhsize_cat", "2"      ): "SZ2_HHLDS",
              ("hhsize_cat", "3"      ): "SZ3_HHLDS",
