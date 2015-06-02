@@ -34,8 +34,9 @@ class SFCTAStarter(Starter):
     def __init__(self, key, 
                   write_households_csv=None, write_persons_csv=None, write_append=False,
                   start_hhid=1, start_persid=1):
-        pd.options.display.width = 200
+        pd.options.display.width        = 200
         pd.options.display.float_format = '{:,.3f}'.format
+        pd.options.display.max_columns  = 30
 
         # start ids here
         self.start_hhid     = start_hhid
@@ -210,8 +211,10 @@ class SFCTAStarter(Starter):
         self.hh_geog_id = geog_id
 
         # add TAZ
-        self.households['taz'] = geog_id.SFTAZ            
+        self.households['taz'] = geog_id.SFTAZ 
+        self.households.index.name = 'hh_id'           
         
+        # hhid = sequential.  hh_id = original
         self.households['hhid'] = range(self.start_hhid, self.start_hhid+len(self.households))
         self.start_hhid = self.start_hhid + len(self.households)
 
@@ -224,6 +227,9 @@ class SFCTAStarter(Starter):
         if self.per_csvfile == None:
             return False
         
+        print "Will write %d people" % len(people)
+        # print self.households
+        
         # get rid of extraneous columns
         people = people.loc[:,['race','employ','educn','relat','serialno',
                                'SPORDER','PUMA00','PUMA10',
@@ -233,7 +239,7 @@ class SFCTAStarter(Starter):
         # we want the taz column
         people['taz'] = geog_id.SFTAZ
 
-        # get some back from households
+        # get some columns from households
         hhs = self.households.loc[:,
                                   ['serialno','hhid',
                                    'hhadlt',
@@ -243,10 +249,10 @@ class SFCTAStarter(Starter):
                                    'hhfull','hhpart','workers',
                                    'VEH',
                                    'hhinc','income_cat']]
+        # make the hh_id an actual column (not the index) for joining
+        hhs.reset_index(drop=False, inplace=True)
+        people = people.merge(hhs, how='left', on='hh_id')
 
-        hhs.drop_duplicates(subset='serialno',inplace=True)
-        people = people.merge(hhs, how='left', on='serialno')
-        
         # rename some of these
         people.rename(columns={'NP':'hhsize',
                                'VEH':'hhvehs',
