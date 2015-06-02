@@ -45,13 +45,13 @@ def calculate_constraints(
 
     constraints = joint_dist.values.copy().astype('float')
     prev_constraints = constraints.copy()
-    prev_constraints += tolerance  # ensure we run at least one iteration
 
     calc_diff = lambda x, y: np.abs(x - y).sum()
 
     iterations = 0
 
-    while calc_diff(constraints, prev_constraints) > tolerance:
+    # ensure we run at least one iteration
+    while iterations == 0 or calc_diff(constraints, prev_constraints) > tolerance:
         prev_constraints[:] = constraints
 
         for idx in marginals.index:
