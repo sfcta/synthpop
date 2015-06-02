@@ -53,8 +53,8 @@ class SFCTAStarterGroupQuarters(SFCTAStarter):
         # 10                29
 
         self.person_controls = cat.categorize(self.controls,
-            {("gqworker_cat","0" ):"GQWKRS",
-             ("gqworker_cat","1" ):"GQNONWKRS",
+            {("gqworker_cat","1" ):"GQWKRS",
+             ("gqworker_cat","0" ):"GQNONWKRS",
              ("gqage_cat", "0-64"):"GQAGE064",
              ("gqage_cat", "65+" ):"GQAGE65P" }, index_cols=['SFTAZ'])
         
@@ -96,13 +96,14 @@ class SFCTAStarterGroupQuarters(SFCTAStarter):
         np_bad = (h_pums.NP != 1)
         assert(np_bad.sum() == 0)
         
-        # TODO: group quarters are different
+        # Group quarters income -- use PINCP
         h_pums['hhinc_2012dollars'] = h_pums['PINCP']*(0.000001*h_pums['ADJINC'])  # ADJINC has 6 implied decimal places
         h_pums['hhinc_1989dollars'] = 0.54*h_pums['hhinc_2012dollars']
         
         h_pums['hhinc'] = h_pums['hhinc_1989dollars']/1000.0  # in thousands of dollars
         # print sum(h_pums.loc[:,'hhinc']<0)
-        h_pums.loc[h_pums.loc[:,'hhinc']<0,  'hhinc'] = 0.0       # no negatives
+        h_pums.loc[h_pums.loc[:,'hhinc']<0,  'hhinc'] = 0.0              # no negatives
+        h_pums.loc[pd.isnull(h_pums.loc[:,'hhinc']),'hhinc'] = 0.0       # no null
         # print sum(h_pums.loc[:,'hhinc']>255)
         h_pums.loc[h_pums.loc[:,'hhinc']>255,'hhinc'] = 255.0   # max = 255
         

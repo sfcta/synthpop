@@ -45,10 +45,10 @@ class SFCTAStarterHouseholds(SFCTAStarter):
         print "Household controls has length %d" % len(self.controls)
 
         self.hh_controls = cat.categorize(self.controls, 
-            {("income_cat", "0-30k"  ): "HHINC030",
-             ("income_cat", "30-60k" ): "HHINC3060",
-             ("income_cat", "60-100k"): "HHINC60100",
-             ("income_cat", "100k+"  ): "HHINC100P",
+            {("income_cat", "0-25k"  ): "HHINC030",
+             ("income_cat", "25-45k" ): "HHINC3060",
+             ("income_cat", "45-75k"): "HHINC60100",
+             ("income_cat", "75k+"  ): "HHINC100P",
              ("hhsize_cat", "1"      ): "SZ1_HHLDS",
              ("hhsize_cat", "2"      ): "SZ2_HHLDS",
              ("hhsize_cat", "3"      ): "SZ3_HHLDS",
@@ -119,7 +119,7 @@ class SFCTAStarterHouseholds(SFCTAStarter):
         h_pums = h_pums[h_pums['TYPE']==1]
         print "Filtered to %d households from %d originally" % (len(h_pums), orig_len)
                 
-        # TODO: group quarters are different
+        # Household income
         h_pums['hhinc_2012dollars'] = h_pums['HINCP']*(0.000001*h_pums['ADJINC'])  # ADJINC has 6 implied decimal places
         h_pums['hhinc_1989dollars'] = 0.54*h_pums['hhinc_2012dollars']
         
@@ -147,14 +147,14 @@ class SFCTAStarterHouseholds(SFCTAStarter):
             return "1"
 
         def income_cat(r):
-            if r.hhinc < 30.0:
-                return "0-30k"
-            elif r.hhinc < 60.0:
-                return "30-60k"
-            elif r.hhinc < 100.0:
-                return "60-100k"
+            if r.hhinc < 25.0:
+                return "0-25k"
+            elif r.hhinc < 45.0:
+                return "25-45k"
+            elif r.hhinc < 75.0:
+                return "45-75k"
             else:
-                return "100k+"
+                return "75k+"
 
         def workers_cat(r):
             # hmm... WIF = Workers in Family.  What about non-family households?
