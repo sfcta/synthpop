@@ -8,8 +8,6 @@ import pandas as pd
 
 # TODO DOCSTRINGS!!
 class SFCTAStarter(Starter):
-    CENSUS_DATA_DIR = r"Q:\Model Development\Population Synthesizer\2. Base Year Eval\PopGen input from ACS20082012\by_st_puma10\\"
-    FIPS_FILE       = r"..\input_data\national_county.txt"
     """
     The SFCTA starter takes the tazdata as input and formulates the marginal controls from there.
 
@@ -31,7 +29,7 @@ class SFCTAStarter(Starter):
         joint distributions for the persons (from PUMS), one joint
         distribution for each PUMA (one row per PUMA)
     """
-    def __init__(self, key, 
+    def __init__(self, key, controls_csv, tazset=None, puma_data_dir=None, fips_file=None,
                   write_households_csv=None, write_persons_csv=None, write_append=False,
                   start_hhid=1, start_persid=1):
         pd.options.display.width        = 200
@@ -43,7 +41,7 @@ class SFCTAStarter(Starter):
         self.start_persid   = start_persid
         
         # Starter.__init__(self, key, '06', '075')
-        self.c = Census(key, base_url=SFCTAStarter.CENSUS_DATA_DIR, fips_url=SFCTAStarter.FIPS_FILE)
+        self.c = Census(key, base_url=puma_data_dir, fips_url=fips_file)
         
         self.hh_csvfile = None
         if write_households_csv:
@@ -56,9 +54,14 @@ class SFCTAStarter(Starter):
             self.wrote_hh_header = True
             self.wrote_pers_header = True
                         
-        # Read Y:\champ\landuse\p2011\SCS.JobsHousingConnection.Spring2013update\2010\PopSyn9County\inputs\converted\tazdata_converted.csv
-        self.controls = pd.read_csv(r"Y:\champ\landuse\p2011\SCS.JobsHousingConnection.Spring2013update\2010\PopSyn9County\inputs\converted\tazdata_converted.csv",
-                                    index_col = False)
+        # Read the control file
+        print "\n\nReading the control file [%s]" % controls_csv
+        self.controls = pd.read_csv(controls_csv, index_col = False)
+
+        # Limit to only the specified TAZs
+        if tazset and len(tazset)>0:
+            print "Using only TAZs in %s" % str(tazset)
+            self.controls = self.controls[self.controls.SFTAZ.isin(tazset)]
 
         self.tazToPUMA2010 = pd.read_csv(r"Q:\Model Development\Population Synthesizer\4. Geographic Work\Census 2010 PUMAs\TAZ2454_to_Census2010PUMAs.csv",
                                          index_col=0, converters = {'PUMA2010':str})

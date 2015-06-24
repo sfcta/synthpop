@@ -25,10 +25,10 @@ class SFCTAStarterGroupQuarters(SFCTAStarter):
         joint distributions for the persons (from PUMS), one joint
         distribution for each PUMA (one row per PUMA)
     """
-    def __init__(self, key, 
+    def __init__(self, key, controls_csv, tazset=None, puma_data_dir=None, fips_file=None,
                   write_households_csv=None, write_persons_csv=None, write_append=False,
                   start_hhid=1, start_persid=1):
-        SFCTAStarter.__init__(self, key,
+        SFCTAStarter.__init__(self, key, controls_csv, tazset, puma_data_dir, fips_file,
                               write_households_csv, write_persons_csv, write_append,
                               start_hhid, start_persid)
 
