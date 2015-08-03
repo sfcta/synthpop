@@ -57,7 +57,10 @@ class SFCTAStarterHouseholds(SFCTAStarter):
              ("workers_cat", "0"     ): "WKR0_HHLDS",
              ("workers_cat", "1"     ): "WKR1_HHLDS",
              ("workers_cat", "2"     ): "WKR2_HHLDS",
-             ("workers_cat", "3+"    ): "WKR3_HHLDS" },
+             ("workers_cat", "3+"    ): "WKR3_HHLDS",
+             ("htype_cat", "HAGE1K0"    ): "HAGE1KIDS0",
+             ("htype_cat", "HAGE1K1"    ): "HAGE1KIDS1",
+             ("htype_cat", "HAGE65KALL"    ): "HAGE65KIDSWHATEV" },
                                           index_cols=['SFTAZ'])
         
         # print self.hh_controls.loc[1:10,:]
@@ -165,13 +168,22 @@ class SFCTAStarterHouseholds(SFCTAStarter):
             elif r.workers == 1:
                 return "1"
             return "0"
+        
+        def htype_cat(r):
+            if r.hhage < 65 and r.NOC==0:
+                return "HAGE1K0"
+            elif r.hhage < 65 and r.NOC>0:
+                return "HAGE1K1"
+            else:
+                return "HAGE65KALL"
 
         h_pums, jd_households = cat.joint_distribution(
             h_pums,
             cat.category_combinations(self.hh_controls.columns),
             {"hhsize_cat": hhsize_cat,
              "income_cat": income_cat,
-             "workers_cat": workers_cat}
+             "workers_cat": workers_cat,
+             "htype_cat": htype_cat}
         )
         # cache them
         self.h_pums[puma]           = h_pums

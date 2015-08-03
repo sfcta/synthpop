@@ -174,12 +174,15 @@ class SFCTAStarter(Starter):
         p_pums.loc[p_pums.RELP >= 11, 'relat'] = p_pums.RELP + 6
         assert(len(p_pums.loc[p_pums.relat < 1])==0)
 
+        p_pums['hhage'] = 0
+        p_pums.loc[p_pums.RELP==0, 'hhage'] = p_pums.AGEP
+
         # group them to household unit serial number and sum
         people_grouped = p_pums.loc[:,['serialno',
                                        '_hhadlt','_hh65up','_hh5064',
                                        '_hh3549','_hh2534','_hh1824',
                                        '_hh1217','_hhc511','_hhchu5',
-                                       '_hhfull','_hhpart','PINCP']].groupby(['serialno'])
+                                       '_hhfull','_hhpart','hhage','PINCP']].groupby(['serialno'])
         people_grouped_sum = people_grouped.sum()
         people_grouped_sum.rename(columns={'_hhadlt':'hhadlt',
                                            '_hh65up':'hh65up',
@@ -197,7 +200,7 @@ class SFCTAStarter(Starter):
         # These shouldn't be floats but pandas is summing bools that way
         # https://github.com/pydata/pandas/issues/7001
         cols = ['hhadlt','hh65up','hh5064','hh3549','hh2534','hh1824',
-                'hh1217','hhc511','hhchu5','hhfull','hhpart']
+                'hh1217','hhc511','hhchu5','hhfull','hhpart','hhage']
 
         people_grouped_sum[cols] = people_grouped_sum[cols].astype(int)
         
