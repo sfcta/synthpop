@@ -77,18 +77,29 @@ def category_combinations(index):
     return df
 
 
-def joint_distribution(sample_df, category_df, mapping_functions):
+def joint_distribution(sample_df, category_df, mapping_functions, map_all=True):
 
     # set counts to zero
     category_df["frequency"] = 0
 
     category_names = category_df.index.names
-    for name in category_names:
-        assert name in mapping_functions, "Every category needs to have a " \
-                                          "mapping function with the same " \
-                                          "name to define that category for " \
-                                          "the pums sample records"
-        sample_df[name] = sample_df.apply(mapping_functions[name], axis=1)
+    
+    # by default apply all mapping functions irrespective of whether or not the categories are being controlled for
+    if map_all:
+        for name in category_names:
+            assert name in mapping_functions, "Every category needs to have a " \
+                                              "mapping function with the same " \
+                                              "name to define that category for " \
+                                              "the pums sample records"
+        for name in mapping_functions.keys():
+            sample_df[name] = sample_df.apply(mapping_functions[name], axis=1)
+    else:   
+        for name in category_names:
+            assert name in mapping_functions, "Every category needs to have a " \
+                                              "mapping function with the same " \
+                                              "name to define that category for " \
+                                              "the pums sample records"
+            sample_df[name] = sample_df.apply(mapping_functions[name], axis=1)
 
     category_df["frequency"] = sample_df.groupby(category_names).size()
     category_df["frequency"] = category_df["frequency"].fillna(0)
