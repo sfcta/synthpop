@@ -90,20 +90,20 @@ class SFCTAStarterGroupQuarters(SFCTAStarter):
         # Don't bother filter number of persons -- this should happen with TYPE filter
         # h_pums = h_pums[h_pums['NP']==1]
         
-        # Only Group Quarters
-        h_pums = h_pums[h_pums['TYPE']>=2]
+        # Only Non-Institutional Group Quarters
+        h_pums = h_pums[h_pums['TYPE']>2]
         print "Filtered to %d GQ 'households' from %d originally" % (len(h_pums), orig_len)
         np_bad = (h_pums.NP != 1)
         assert(np_bad.sum() == 0)
         
         # Group quarters income -- use PINCP
+        h_pums.loc[pd.isnull(h_pums.loc[:,'PINCP']),'PINCP'] = 0.0       # no null
         h_pums['hhinc_2012dollars'] = h_pums['PINCP']*(0.000001*h_pums['ADJINC'])  # ADJINC has 6 implied decimal places
         h_pums['hhinc_1989dollars'] = 0.54*h_pums['hhinc_2012dollars']
         
         h_pums['hhinc'] = h_pums['hhinc_1989dollars']/1000.0  # in thousands of dollars
         # print sum(h_pums.loc[:,'hhinc']<0)
         h_pums.loc[h_pums.loc[:,'hhinc']<0,  'hhinc'] = 0.0              # no negatives
-        h_pums.loc[pd.isnull(h_pums.loc[:,'hhinc']),'hhinc'] = 0.0       # no null
         # print sum(h_pums.loc[:,'hhinc']>255)
         h_pums.loc[h_pums.loc[:,'hhinc']>255,'hhinc'] = 255.0   # max = 255
         
@@ -123,13 +123,44 @@ class SFCTAStarterGroupQuarters(SFCTAStarter):
             elif r.NP == 1:
                 return "1"
             return "1"
+        
+        def income_cat(r):
+            if r.hhinc < 25.0:
+                return "0-25k"
+            elif r.hhinc < 45.0:
+                return "25-45k"
+            elif r.hhinc < 75.0:
+                return "45-75k"
+            else:
+                return "75k+"
+
+        def workers_cat(r):
+            # hmm... WIF = Workers in Family.  What about non-family households?
+            if r.workers >= 3:
+                return "3+"
+            elif r.workers == 2:
+                return "2"
+            elif r.workers == 1:
+                return "1"
+            return "0"
+        
+        def htype_cat(r):
+            if r.hhage < 65 and r.gqchild==0:
+                return "HAGE1K0"
+            elif r.hhage < 65 and r.gqchild > 0:
+                return "HAGE1K1"
+            else:
+                return "HAGE65KALL"
 
         category_df = pd.DataFrame({'cat_id':[0], 'hhsize_cat':["1"]})
         category_df.set_index(['hhsize_cat'], inplace=True)
         h_pums, jd_households = cat.joint_distribution(
             h_pums,
             category_df,
-            {"hhsize_cat": hhsize_cat}
+            {"hhsize_cat": hhsize_cat,
+             "income_cat": income_cat,
+             "workers_cat": workers_cat,
+             "htype_cat": htype_cat}
         )
 
         # cache them
@@ -153,7 +184,7 @@ class SFCTAStarterGroupQuarters(SFCTAStarter):
         orig_len = len(p_pums)
         p_pums = p_pums.merge(h_pums, how='left')
         # Only Group Quarters
-        p_pums = p_pums.loc[p_pums['TYPE']>=2]
+        p_pums = p_pums.loc[p_pums['TYPE']>2]
         print "Filtered to %d GQ persons from %d originally" % (len(p_pums), orig_len)
         
         assert(len(p_pums.loc[p_pums.RELP<16])==0)
